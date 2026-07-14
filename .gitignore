@@ -1,0 +1,16 @@
+# Build
+bin/
+obj/
+
+# IDE
+.vs/
+.vscode/
+
+# Tools
+tools/
+
+# Publish
+publish/
+
+# Logs
+*.log
