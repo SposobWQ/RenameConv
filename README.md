@@ -1,24 +1,167 @@
 # RenameConv
 
-Фоновый Windows-конвертер: пользователь меняет расширение файла в Проводнике, а программа распознаёт содержимое и в фоне создаёт файл в новом формате. Окно консоли не открывается; значок приложения находится в системном трее.
+> 🚀 Automatically converts files when you change their extension in Windows Explorer.
 
-## Как это работает
+RenameConv is a lightweight Windows background application that watches your file system. Simply rename a file from, for example, `movie.mkv` to `movie.webm`, and RenameConv automatically converts it in the background using FFmpeg.
 
-1. Запустите `RenameConv.exe` без аргументов: он рекурсивно наблюдает все доступные локальные, съёмные и сетевые диски. Подключённые позже диски добавляются автоматически.
-2. Если нужен ограниченный режим, передайте одну или несколько конкретных папок в аргументах.
-3. Переименуйте, например, `movie.mkv` в `movie.webm`.
-4. RenameConv сначала пытается быстро перепаковать потоки без перекодирования. Если контейнер или кодеки несовместимы, включается перекодирование.
-5. Во время работы используется временный файл; исходный файл не повреждается при ошибке.
+No console windows. No manual conversion. Just rename the file.
 
-## Поддерживаемые форматы
+---
 
-FFmpeg обрабатывает содержимое, а не только старое расширение файла.
+## ✨ Features
 
-- Видео: `mp4`, `m4v`, `mkv`, `mov`, `avi`, `webm`, `flv`, `wmv`, `mpg`, `mpeg`, `3gp`, `ogv`.
-- Аудио: `mp3`, `wav`, `flac`, `m4a`, `aac`, `ogg`, `opus`, `wma`, `aiff`.
-- Изображения: `jpg`/`jpeg`, `png`, `webp`, `bmp`, `tif`/`tiff`, `gif`.
-- Документы: `pdf`, `doc`/`docx`, `odt`, `rtf`, `txt`, `html`, `xls`/`xlsx`, `ods`, `csv`, `ppt`/`pptx`, `odp`
+- 🔄 Automatic conversion after renaming a file extension
+- ⚡ Fast remuxing when transcoding is unnecessary
+- 🎬 Powered by FFmpeg
+- 🖥️ Runs silently in the Windows system tray
+- 💾 Supports local, removable and network drives
+- 📁 Can watch specific folders or the entire system
+- 🛡️ Safe conversion using temporary files
 
-## Важные ограничения
+---
 
-Не любое изменение расширения означает возможную конвертацию: формат может не поддерживать исходные дорожки, шифрование, DRM или свойства оригинала. В таких случаях файл остаётся на месте, а причина записывается в `%LOCALAPPDATA%\RenameConv\RenameConv.log`.
+## 📸 How it works
+
+1. Start `RenameConv.exe`.
+2. Rename a file in Windows Explorer.
+
+Example:
+
+```text
+movie.mkv
+      ↓ rename
+movie.webm
+```
+
+RenameConv detects the extension change and:
+
+- checks the actual file format;
+- attempts fast stream copy (remux);
+- automatically falls back to transcoding if needed;
+- replaces the renamed file only after successful conversion.
+
+---
+
+## 🚀 Usage
+
+### Watch all drives
+
+```bash
+RenameConv.exe
+```
+
+Automatically monitors:
+
+- Local drives
+- USB drives
+- Network drives
+- Newly connected drives
+
+### Watch specific folders
+
+```bash
+RenameConv.exe "D:\Videos" "E:\Music"
+```
+
+---
+
+## 📦 Supported Formats
+
+### 🎥 Video
+
+- MP4
+- MKV
+- AVI
+- MOV
+- WEBM
+- FLV
+- WMV
+- MPG
+- MPEG
+- M4V
+- 3GP
+- OGV
+
+### 🎵 Audio
+
+- MP3
+- WAV
+- FLAC
+- AAC
+- M4A
+- OGG
+- OPUS
+- WMA
+- AIFF
+
+### 🖼 Images
+
+- JPG / JPEG
+- PNG
+- WEBP
+- BMP
+- TIFF
+- GIF
+
+### 📄 Documents
+
+- PDF
+- DOC / DOCX
+- ODT
+- RTF
+- TXT
+- HTML
+- XLS / XLSX
+- ODS
+- CSV
+- PPT / PPTX
+- ODP
+
+---
+
+## ⚙️ How conversion works
+
+RenameConv doesn't rely only on the file extension.
+
+Instead, it:
+
+- detects the real file format;
+- selects the optimal conversion method;
+- preserves the original file until conversion completes successfully.
+
+If remuxing is impossible, FFmpeg automatically performs transcoding.
+
+---
+
+## ⚠️ Limitations
+
+Some files cannot be converted because of:
+
+- unsupported codecs;
+- DRM protection;
+- encrypted media;
+- unsupported container features.
+
+Errors are written to:
+
+```text
+%LOCALAPPDATA%\RenameConv\RenameConv.log
+```
+
+---
+
+## 🛠 Requirements
+
+- Windows 10/11
+- FFmpeg (included with Release)
+- LibreOffice (included with Release)
+
+---
+
+## 📜 License
+
+MIT License
+
+---
+
+Made with ❤️ in C#
