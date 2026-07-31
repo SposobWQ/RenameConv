@@ -22,6 +22,7 @@ dotnet publish (Join-Path $root 'RenameConv.csproj') --configuration Release --r
 $toolsOutput = Join-Path $output 'tools'
 New-Item -ItemType Directory -Path $toolsOutput -Force | Out-Null
 Copy-Item (Join-Path $root 'tools\LibreOfficePortable') $toolsOutput -Recurse -Force
+Copy-Item (Join-Path $root 'tools\ffmpeg') $toolsOutput -Recurse -Force
 
 $readme = @(
     'RenameConv Portable',

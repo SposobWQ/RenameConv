@@ -58,14 +58,13 @@ var watchersLock = new object();
 
 void QueueRenamed(object? _, RenamedEventArgs e)
 {
+    if (ShouldIgnoreFile(e.FullPath))
+        return;
     if (Directory.Exists(e.FullPath) || IsTemporary(e.Name ?? string.Empty)) return;
     var sourceExtension = Path.GetExtension(e.OldName);
     var targetExtension = Path.GetExtension(e.Name);
     if (string.IsNullOrWhiteSpace(sourceExtension) || string.IsNullOrWhiteSpace(targetExtension) ||
         sourceExtension.Equals(targetExtension, StringComparison.OrdinalIgnoreCase)) return;
-
-    // Проводник уже изменил имя. На этом этапе исходный файл — e.FullPath.
-    // Старое расширение сохраняем только как подсказку; формат проверяет ffprobe.
     var key = e.FullPath.ToUpperInvariant();
     if (seen.TryGetValue(key, out var last) && DateTime.UtcNow - last < TimeSpan.FromSeconds(2)) return;
     seen[key] = DateTime.UtcNow;
@@ -75,6 +74,65 @@ void QueueRenamed(object? _, RenamedEventArgs e)
         Report($"В очереди: {e.OldName} → {e.Name}");
     }
     catch (InvalidOperationException) { }
+}
+
+static bool ShouldIgnoreFile(string filePath)
+{
+    string fileName = Path.GetFileName(filePath);
+    string extension = Path.GetExtension(filePath);
+
+    string[] ignoredExtensions =
+    {
+        ".tmp",
+        ".temp",
+        ".part",
+        ".crdownload",
+        ".bin",
+        ".json",
+        ".trn",
+        ".bak",
+        ".ndjgz",
+        ".lock",
+        ".iig",
+        ".TMP",
+        ".jsonlz4",
+        ".baklz4",
+        ".swidtag",
+        ".customDestinations-ms",
+        ".cs",
+        ".dll",
+        ".old",
+        ".log",
+        ".orig",
+        ".xcu",
+        ".xcd",
+        ".swo",
+        ".swp",
+    };
+
+    if (ignoredExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        return true;
+
+    if (fileName.StartsWith("~$"))
+        return true;
+
+    if (fileName.StartsWith(".~lock."))
+        return true;
+
+    if (fileName.StartsWith("~"))
+        return true;
+
+    try
+    {
+        var attributes = File.GetAttributes(filePath);
+        if ((attributes & FileAttributes.Temporary) != 0)
+            return true;
+    }
+    catch
+    {
+    }
+
+    return false;
 }
 
 void AddWatcher(string root)
@@ -166,8 +224,6 @@ static async Task ConvertAsync(ConversionRequest request, string ffmpeg, string 
 
     if (!TryGetTargetProfile(request.TargetExtension, out var profile))
     {
-        // FFmpeg знает больше контейнеров, чем наш список безопасных пресетов.
-        // Для редкого расширения даём ему самому выбрать допустимые кодеки.
         profile = new EncodingProfile("-map 0", false);
         report($"Редкий формат {request.TargetExtension}: используется автоматический профиль FFmpeg");
     }
@@ -176,7 +232,6 @@ static async Task ConvertAsync(ConversionRequest request, string ffmpeg, string 
         Path.GetDirectoryName(request.TargetPath)!,
         $"{Path.GetFileNameWithoutExtension(request.TargetPath)}.__renameconv__{request.TargetExtension}");
 
-    // Сначала пробуем быструю перепаковку без потери качества. При несовместимости повторяем с перекодированием.
     var copySucceeded = false;
     if (profile.TryStreamCopy)
     {
@@ -252,7 +307,7 @@ static string? ResolveTool(string environmentVariable, string executableName)
             {
                 executableName,
                 Path.Combine("tools", "ffmpeg", "bin", executableName),
-                Path.Combine("ffmpeg", "bin", executableName) // совместимость со старой структурой
+                Path.Combine("ffmpeg", "bin", executableName)
             })
             {
                 var candidate = Path.Combine(directory.FullName, relative);
@@ -269,7 +324,6 @@ static string? ResolveOffice()
     var configured = Environment.GetEnvironmentVariable("LIBREOFFICE_PATH");
     if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured)) return configured;
 
-    // Переносимый вариант, упакованный рядом с RenameConv.exe.
     foreach (var root in new[] { Environment.CurrentDirectory, AppContext.BaseDirectory })
     {
         var directory = new DirectoryInfo(root);
@@ -307,7 +361,6 @@ static bool TryGetTargetProfile(string extension, out EncodingProfile profile)
 {
     var profiles = new Dictionary<string, EncodingProfile>(StringComparer.OrdinalIgnoreCase)
     {
-        // Видео
         [".mp4"] = new("-c:v libx264 -crf 20 -preset veryfast -c:a aac -b:a 192k -movflags +faststart", true),
         [".m4v"] = new("-c:v libx264 -crf 20 -preset veryfast -c:a aac -b:a 192k -movflags +faststart", true),
         [".mkv"] = new("-c:v libx264 -crf 20 -preset veryfast -c:a aac -b:a 192k", true),
@@ -321,7 +374,6 @@ static bool TryGetTargetProfile(string extension, out EncodingProfile profile)
         [".3gp"] = new("-c:v h263 -c:a aac -b:a 96k", true),
         [".ogv"] = new("-c:v libtheora -q:v 7 -c:a libvorbis -q:a 5", true),
 
-        // Аудио
         [".mp3"] = new("-map 0:a:0 -vn -c:a libmp3lame -q:a 2", true),
         [".wav"] = new("-map 0:a:0 -vn -c:a pcm_s16le", true),
         [".flac"] = new("-map 0:a:0 -vn -c:a flac", true),
@@ -332,7 +384,6 @@ static bool TryGetTargetProfile(string extension, out EncodingProfile profile)
         [".wma"] = new("-map 0:a:0 -vn -c:a wmav2 -b:a 192k", true),
         [".aiff"] = new("-map 0:a:0 -vn -c:a pcm_s16be", true),
 
-        // Изображения
         [".jpg"] = new("-map 0:v:0 -frames:v 1 -q:v 2", false),
         [".jpeg"] = new("-map 0:v:0 -frames:v 1 -q:v 2", false),
         [".png"] = new("-map 0:v:0 -frames:v 1 -c:v png", false),
