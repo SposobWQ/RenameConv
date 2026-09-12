@@ -5,6 +5,16 @@ obj/
 # IDE
 .vs/
 .vscode/
+*.user
+*.suo
+
+# Local verification
+.verification/
+TestResults/
+
+# Windows
+Thumbs.db
+Desktop.ini
 
 # Tools
 tools/

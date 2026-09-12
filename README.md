@@ -17,6 +17,11 @@ No console windows. No manual conversion. Just rename the file.
 - 💾 Supports local, removable and network drives
 - 📁 Can watch specific folders or the entire system
 - 🛡️ Safe conversion using temporary files
+- ⚙️ Settings opened from the tray icon
+- 🌐 Russian and English interfaces
+- 🎨 System, light, and dark themes with a selectable tray-icon colour
+- ⬇️ Automatic download of FFmpeg and LibreOffice Portable when needed
+- 🔄 In-app application and dependency updates
 
 ---
 
@@ -153,8 +158,17 @@ Errors are written to:
 ## 🛠 Requirements
 
 - Windows 10/11
-- FFmpeg (included with Release)
-- LibreOffice (included with Release)
+- x64 processor
+- Internet access only for the compact build's first download of FFmpeg or LibreOffice
+
+## 📦 Builds
+
+Two Windows x64 packages are available:
+
+- **Portable** — FFmpeg and LibreOffice Portable are already included. Extract the entire archive to an ASCII-only path, for example `C:\RenameConvPortable`, and run `RenameConv.exe`.
+- **Online** — smaller package. FFmpeg downloads automatically at launch when absent; LibreOffice Portable downloads when document conversion first requires it. Downloaded tools are stored in `%LOCALAPPDATA%\RenameConv\tools`.
+
+Both packages contain `RenameConvUpdater.exe`. RenameConv checks GitHub releases, downloads the matching ZIP update, closes itself, applies the update, and restarts without opening a browser.
 
 ---
 
@@ -165,3 +179,29 @@ MIT License
 ---
 
 Made with ❤️ in C#
+
+---
+
+## Version history
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete history beginning with version 1.0.0.
+
+## Project Layout
+
+```text
+Models/       Conversion data models
+Services/     Conversion, file watcher, log, and dependency services
+Updates/      GitHub release discovery and update dialog
+Dependencies/ FFmpeg and LibreOffice Portable installation and refresh
+Localization/ Russian and English interface strings
+Personalization/ Theme and tray-icon appearance
+RenameConvUpdater/  External updater project next to this repository
+```
+
+Downloaded tools are kept separately in `%LOCALAPPDATA%\RenameConv\tools`, so the portable application folder remains movable. Automatic dependency updates are optional in Settings; LibreOffice is a large download and is fetched only when required or when its update check is enabled.
+
+## Release Package
+
+Run `C:\Users\SposobWQ\Documents\publish-portable.ps1` to build the portable release. It creates `RenameConvPortable-1.1.0-win-x64.zip` in `C:\Users\SposobWQ\Documents\publish`. Build the online package with `IncludeBundledTools=false`; it must contain `RenameConv.exe` and `RenameConvUpdater.exe`, but no `tools` folder.
+
+Upload that ZIP as the GitHub release asset. RenameConv selects this asset automatically when checking for a newer release.
