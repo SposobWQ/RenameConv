@@ -28,14 +28,11 @@ internal sealed class RenameConvApplication : IDisposable
     private Task? _worker;
     private string[] _commandLineRoots = [];
     private bool _usesCommandLineRoots;
-    private readonly bool _isAutoStartInvocation;
-    private StartupDialog? _startupDialog;
     private int _stopping;
 
     public RenameConvApplication(string[] arguments)
     {
         _arguments = arguments;
-        _isAutoStartInvocation = arguments.Contains("--autostart", StringComparer.OrdinalIgnoreCase);
         _settings = SettingsManager.Load();
         _localizer = new Localizer(_settings.Language);
         _dependencies = new DependencyManager(_log.Write);
@@ -71,7 +68,7 @@ internal sealed class RenameConvApplication : IDisposable
     {
         try
         {
-            _commandLineRoots = _arguments.Where(argument => !argument.Equals("--autostart", StringComparison.OrdinalIgnoreCase)).Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            _commandLineRoots = _arguments.Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         }
         catch (ArgumentException)
         {
@@ -101,25 +98,11 @@ internal sealed class RenameConvApplication : IDisposable
             }
         }
 
-        var conversion = new ConversionService(ffmpeg, ffprobe, ToolLocator.FindLibreOffice(_settings.LibreOfficePath), _dependencies, _log.Write);
+        var conversion = new ConversionService(ffmpeg, ffprobe, ToolLocator.FindLibreOffice(), _dependencies, _log.Write);
         _worker = Task.Run(() => ProcessQueueAsync(conversion, _cancellation.Token));
         _watchers = new FolderWatcherService(_queue, _log.Write);
         ApplyWatcherConfiguration();
         CreateTrayIcon();
-        if (!_isAutoStartInvocation)
-        {
-            _startupDialog = new StartupDialog(_localizer, _settings.Theme);
-            _startupDialog.FormClosed += (_, _) => _startupDialog?.Dispose();
-            _startupDialog.Show();
-        }
-        try
-        {
-            AutoStartService.Configure(_settings.StartWithWindows);
-        }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or InvalidOperationException)
-        {
-            _log.Write($"Не удалось обновить автозапуск: {ex.Message}");
-        }
         Console.CancelKeyPress += OnConsoleCancel;
         _log.Write(_usesCommandLineRoots ? $"Запуск. Наблюдаемые папки: {string.Join(", ", _commandLineRoots)}" : _settings.WatchAllDrives ? "Запуск. Наблюдение за всеми доступными дисками." : $"Запуск. Наблюдаемые папки: {string.Join(", ", _settings.WatchedFolders)}");
         return true;
@@ -180,14 +163,14 @@ internal sealed class RenameConvApplication : IDisposable
         _refreshTimer.Tick += (_, _) => _watchers?.Refresh();
         _refreshTimer.Start();
 
-        if ((_settings.CheckForUpdatesOnStartup || ShouldCheckDependenciesAutomatically()) && !_usesCommandLineRoots)
+        if ((_settings.CheckForUpdatesOnStartup || _settings.AutoUpdateDependencies) && !_usesCommandLineRoots)
         {
             EventHandler? checkOnIdle = null;
             checkOnIdle = async (_, _) =>
             {
                 Application.Idle -= checkOnIdle;
                 if (_settings.CheckForUpdatesOnStartup) await CheckForUpdatesAsync(false);
-                if (ShouldCheckDependenciesAutomatically()) await CheckDependenciesAsync(false);
+                if (_settings.AutoUpdateDependencies) await CheckDependenciesAsync(false);
             };
             Application.Idle += checkOnIdle;
         }
@@ -202,7 +185,6 @@ internal sealed class RenameConvApplication : IDisposable
         {
             SettingsManager.Save(dialog.Settings);
             _settings = dialog.Settings;
-            AutoStartService.Configure(_settings.StartWithWindows);
             _localizer.SetLanguage(_settings.Language);
             CreateTrayIcon();
             if (_usesCommandLineRoots)
@@ -236,7 +218,7 @@ internal sealed class RenameConvApplication : IDisposable
                 return;
             }
 
-            using var dialog = new UpdateDialog(release, _updates, RequestStop, _localizer, _settings.Theme);
+        using var dialog = new UpdateDialog(release, _updates, RequestStop, _localizer, _settings.Theme);
             dialog.ShowDialog();
         }
         catch (HttpRequestException)
@@ -260,11 +242,6 @@ internal sealed class RenameConvApplication : IDisposable
             var results = await _dependencies.UpdateAllAsync(_cancellation.Token);
             var message = string.Join(Environment.NewLine, results.Select(result => result.Message));
             _log.Write(message);
-            if (results.All(result => result.Changed))
-            {
-                _settings.LastDependencyUpdateUtc = DateTime.UtcNow;
-                SettingsManager.Save(_settings);
-            }
             if (showResultMessage) MessageBox.Show(message, "RenameConv", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (OperationCanceledException) { }
@@ -272,12 +249,6 @@ internal sealed class RenameConvApplication : IDisposable
         {
             if (showResultMessage) MessageBox.Show($"Не удалось обновить зависимости: {ex.Message}", "RenameConv", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
-    }
-
-    private bool ShouldCheckDependenciesAutomatically()
-    {
-        if (!_settings.AutoUpdateDependencies) return false;
-        return _settings.LastDependencyUpdateUtc is null || DateTime.UtcNow - _settings.LastDependencyUpdateUtc.Value >= TimeSpan.FromDays(7);
     }
 
     private void OnConsoleCancel(object? sender, ConsoleCancelEventArgs eventArgs)

@@ -17,9 +17,4 @@
 		<None Update="tools\ffmpeg\bin\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<Compile Remove="Updater\**\*.cs" />
-		<None Remove="Updater\**\*" />
-	</ItemGroup>
-
 </Project>

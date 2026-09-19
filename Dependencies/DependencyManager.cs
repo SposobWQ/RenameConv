@@ -11,7 +11,7 @@ namespace RenameConv.Dependencies;
 internal sealed class DependencyManager
 {
     private const string FfmpegReleaseUrl = "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest";
-    private const string LibreOfficeDownloadPageUrl = "https://www.libreoffice.org/download/download-libreoffice/";
+    private const string LibreOfficePageUrl = "https://portableapps.com/apps/office/libreoffice_portable";
     private readonly HttpClient _client = new() { Timeout = TimeSpan.FromMinutes(10) };
     private readonly Action<string> _report;
     private readonly SemaphoreSlim _ffmpegLock = new(1, 1);
@@ -44,6 +44,25 @@ internal sealed class DependencyManager
         }
     }
 
+    public async Task<string?> EnsureLibreOfficeAsync(CancellationToken cancellationToken)
+    {
+        var office = ToolLocator.FindLibreOffice();
+        if (office is not null) return office;
+
+        await _officeLock.WaitAsync(cancellationToken);
+        try
+        {
+            office = ToolLocator.FindLibreOffice();
+            if (office is not null) return office;
+            await InstallLibreOfficeAsync(cancellationToken);
+            return ToolLocator.FindLibreOffice();
+        }
+        finally
+        {
+            _officeLock.Release();
+        }
+    }
+
     public async Task<IReadOnlyList<DependencyUpdateResult>> UpdateAllAsync(CancellationToken cancellationToken)
     {
         var results = new List<DependencyUpdateResult>();
@@ -71,7 +90,7 @@ internal sealed class DependencyManager
             try
             {
                 await InstallLibreOfficeAsync(cancellationToken);
-                results.Add(new DependencyUpdateResult("LibreOffice", true, "LibreOffice подготовлен."));
+                results.Add(new DependencyUpdateResult("LibreOffice", true, "LibreOffice Portable обновлён."));
             }
             finally
             {
@@ -84,25 +103,6 @@ internal sealed class DependencyManager
         }
 
         return results;
-    }
-
-    public async Task<string?> EnsureLibreOfficeAsync(string? selectedPath, CancellationToken cancellationToken)
-    {
-        var office = ToolLocator.FindLibreOffice(selectedPath);
-        if (office is not null) return office;
-
-        await _officeLock.WaitAsync(cancellationToken);
-        try
-        {
-            office = ToolLocator.FindLibreOffice(selectedPath);
-            if (office is not null) return office;
-            await InstallLibreOfficeAsync(cancellationToken);
-            return ToolLocator.FindLibreOffice(selectedPath);
-        }
-        finally
-        {
-            _officeLock.Release();
-        }
     }
 
     private async Task InstallFfmpegAsync(CancellationToken cancellationToken)
@@ -135,33 +135,26 @@ internal sealed class DependencyManager
 
     private async Task InstallLibreOfficeAsync(CancellationToken cancellationToken)
     {
-        _report("Загрузка LibreOffice...");
-        var page = await _client.GetStringAsync(LibreOfficeDownloadPageUrl, cancellationToken);
-        var versionMatch = Regex.Match(page, @"LibreOffice_([0-9]+(?:\.[0-9]+)+)_Win_x86-64\.msi", RegexOptions.IgnoreCase);
-        if (!versionMatch.Success) throw new InvalidOperationException("Не удалось определить версию LibreOffice для Windows x64.");
+        _report("Загрузка LibreOffice Portable...");
+        var page = await _client.GetStringAsync(LibreOfficePageUrl, cancellationToken);
+        var versionMatch = Regex.Match(page, @"Version\s+([0-9]+(?:\.[0-9]+)+)", RegexOptions.IgnoreCase);
+        if (!versionMatch.Success) throw new InvalidOperationException("Не удалось определить версию LibreOffice Portable.");
         var version = versionMatch.Groups[1].Value;
-        var installerName = $"LibreOffice_{version}_Win_x86-64.msi";
-        var installerUrl = $"https://download.documentfoundation.org/libreoffice/stable/{version}/win/x86_64/{installerName}";
+        var installerName = $"LibreOfficePortable_{version}_MultilingualStandard.paf.exe";
+        var installerUrl = $"https://download.documentfoundation.org/libreoffice/portable/{version}/{installerName}";
         var temporaryDirectory = CreateTemporaryDirectory();
         var installerPath = Path.Combine(temporaryDirectory, installerName);
-        var extractPath = Path.Combine(temporaryDirectory, "extract");
 
         try
         {
             await DownloadFileAsync(installerUrl, installerPath, cancellationToken);
-            Directory.CreateDirectory(extractPath);
-            var startInfo = new ProcessStartInfo("msiexec.exe") { UseShellExecute = false, CreateNoWindow = true };
-            startInfo.ArgumentList.Add("/a");
-            startInfo.ArgumentList.Add(installerPath);
-            startInfo.ArgumentList.Add("/qn");
-            startInfo.ArgumentList.Add("/norestart");
-            startInfo.ArgumentList.Add($"TARGETDIR={extractPath}");
-            var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Не удалось запустить распаковку LibreOffice.");
+            Directory.CreateDirectory(ManagedToolsDirectory);
+            var process = Process.Start(new ProcessStartInfo(installerPath, $"/S /D={Quote(ManagedToolsDirectory)}") { UseShellExecute = false, CreateNoWindow = true })
+                ?? throw new InvalidOperationException("Не удалось запустить установщик LibreOffice Portable.");
             await process.WaitForExitAsync(cancellationToken);
-            if (process.ExitCode is not 0 and not 3010) throw new InvalidOperationException($"Распаковка LibreOffice завершилась с кодом {process.ExitCode}.");
-            if (Directory.GetFiles(extractPath, "soffice.exe", SearchOption.AllDirectories).Length == 0) throw new InvalidOperationException("В распакованном LibreOffice не найден soffice.exe.");
-            ReplaceDirectory(extractPath, Path.Combine(ManagedToolsDirectory, "LibreOffice"));
-            _report("LibreOffice готов к работе.");
+            if (process.ExitCode != 0) throw new InvalidOperationException($"Установщик LibreOffice завершился с кодом {process.ExitCode}.");
+            if (ToolLocator.FindLibreOffice() is null) throw new InvalidOperationException("LibreOffice не найден после установки.");
+            _report("LibreOffice Portable готов к работе.");
         }
         finally
         {

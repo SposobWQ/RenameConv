@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="Updater/RenameConvUpdater.csproj" />
+  <Project Path="../RenameConvUpdater/RenameConvUpdater.csproj" />
   <Project Path="RenameConv.csproj" />
 </Solution>

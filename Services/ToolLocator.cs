@@ -5,9 +5,8 @@ internal static class ToolLocator
     public static string? FindFfmpeg() => FindTool("FFMPEG_PATH", "ffmpeg.exe");
     public static string? FindFfprobe() => FindTool("FFPROBE_PATH", "ffprobe.exe");
 
-    public static string? FindLibreOffice(string? selectedPath = null)
+    public static string? FindLibreOffice()
     {
-        if (!string.IsNullOrWhiteSpace(selectedPath) && File.Exists(selectedPath)) return selectedPath;
         var configured = Environment.GetEnvironmentVariable("LIBREOFFICE_PATH");
         if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured)) return configured;
 
@@ -16,9 +15,7 @@ internal static class ToolLocator
             foreach (var relative in new[]
             {
                 Path.Combine("tools", "LibreOfficePortable", "App", "libreoffice", "program", "soffice.exe"),
-                Path.Combine("LibreOfficePortable", "App", "libreoffice", "program", "soffice.exe"),
-                Path.Combine("tools", "LibreOffice", "program", "soffice.exe"),
-                Path.Combine("LibreOffice", "program", "soffice.exe")
+                Path.Combine("LibreOfficePortable", "App", "libreoffice", "program", "soffice.exe")
             })
             {
                 var candidate = Path.Combine(directory, relative);

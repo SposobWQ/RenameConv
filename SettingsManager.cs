@@ -8,9 +8,6 @@ internal sealed class AppSettings
     public List<string> WatchedFolders { get; set; } = [];
     public bool CheckForUpdatesOnStartup { get; set; }
     public bool AutoUpdateDependencies { get; set; }
-    public DateTime? LastDependencyUpdateUtc { get; set; }
-    public bool StartWithWindows { get; set; }
-    public string LibreOfficePath { get; set; } = string.Empty;
     public string Language { get; set; } = "ru";
     public string Theme { get; set; } = "system";
     public string TrayIconColor { get; set; } = "blue";
@@ -21,9 +18,6 @@ internal sealed class AppSettings
         WatchedFolders = [.. WatchedFolders],
         CheckForUpdatesOnStartup = CheckForUpdatesOnStartup,
         AutoUpdateDependencies = AutoUpdateDependencies,
-        LastDependencyUpdateUtc = LastDependencyUpdateUtc,
-        StartWithWindows = StartWithWindows,
-        LibreOfficePath = LibreOfficePath,
         Language = Language,
         Theme = Theme,
         TrayIconColor = TrayIconColor
@@ -53,10 +47,6 @@ internal static class SettingsManager
         {
             return new AppSettings();
         }
-        catch (UnauthorizedAccessException)
-        {
-            return new AppSettings();
-        }
     }
 
     public static void Save(AppSettings settings)
@@ -82,7 +72,6 @@ internal static class SettingsManager
         settings.Language = string.Equals(settings.Language, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "ru";
         settings.Theme = settings.Theme?.ToLowerInvariant() is "light" or "dark" ? settings.Theme.ToLowerInvariant() : "system";
         settings.TrayIconColor = settings.TrayIconColor?.ToLowerInvariant() is "violet" or "green" or "orange" ? settings.TrayIconColor.ToLowerInvariant() : "blue";
-        settings.LibreOfficePath = string.IsNullOrWhiteSpace(settings.LibreOfficePath) ? string.Empty : settings.LibreOfficePath.Trim();
         return settings;
     }
 }
