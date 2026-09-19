@@ -1,50 +1,62 @@
-# Changelog
+# История изменений
 
-All notable changes to RenameConv are documented in this file.
+Все заметные изменения RenameConv перечислены в этом файле.
 
-## [1.1.0] - 2026-09-12
+## [1.1.0] — 2026-09-20
 
-### Added
+### Добавлено
 
-- Settings window opened from the system-tray icon.
-- Choice between watching all available drives and selected folders.
-- Persistent settings in `%LOCALAPPDATA%\RenameConv\settings.json`.
-- Russian and English interface languages.
-- System, light, and dark application themes.
-- Selectable tray-icon colours: blue, violet, green, and orange.
-- In-app check, download, and installation of application updates through `RenameConvUpdater.exe`.
-- Automatic download of FFmpeg when it is unavailable.
-- Automatic installation of LibreOffice Portable when document conversion needs it.
-- Manual dependency refresh from the tray and optional refresh check at application startup.
-- Portable package with embedded FFmpeg and LibreOffice Portable.
-- Compact online package that downloads only the libraries it needs.
+- Настройки из иконки в системном трее.
+- Выбор между наблюдением за всеми доступными дисками и указанными папками.
+- Сохранение настроек в `%LOCALAPPDATA%\RenameConv\settings.json`.
+- Русская и английская локализации.
+- Системная, светлая и тёмная темы.
+- Выбор цвета иконки в трее: синий, фиолетовый, зелёный или оранжевый.
+- Стартовая панель при ручном запуске с подсказкой о работе в трее.
+- Автозапуск с Windows без показа стартовой панели.
+- Защита от повторного запуска приложения.
+- Встроенная проверка, загрузка и установка обновлений приложения через `RenameConvUpdater.exe` без перехода в браузер.
+- Автоматическая загрузка FFmpeg при его отсутствии.
+- Автоматическая тихая распаковка LibreOffice из официального Windows x64-пакета при первой конвертации документа. Мастер установки не показывается.
+- Ручная проверка библиотек из трея и необязательная проверка обновлений раз в неделю.
+- Две редакции релиза:
+  - `RenameConvPortable` с уже вложенными FFmpeg и LibreOffice Portable;
+  - `RenameConvOnline`, загружающая библиотеки по необходимости.
+- Скрипт `publish.ps1`, собирающий оба ZIP-архива для GitHub Release.
 
-### Changed
+### Изменено
 
-- Refactored the application from one source file into models, services, localization, personalization, dependency, and update components.
-- Tool discovery now prioritizes downloaded managed tools and then portable bundled tools.
-- Release application is a windowless Windows executable.
-- Update installation validates archive paths, waits for RenameConv to exit, preserves the running updater executable, and restarts the application after replacement.
+- Исходный код разделён на модели, службы наблюдения и конвертации, локализацию, персонализацию, зависимости и обновления.
+- Проект обновлятора теперь находится в папке `Updater` внутри репозитория и собирается вместе с основным приложением.
+- Поиск инструментов сначала использует скачанные библиотеки из `%LOCALAPPDATA%\RenameConv\tools`, затем вложенные в portable-сборку.
+- Обновлятор запускается из временной копии, поэтому может обновить и собственный файл.
+- Online- и portable-версии получают соответствующий ZIP при автообновлении.
+- Автоматическая проверка библиотек не выполняется чаще одного раза в неделю.
 
-### Fixed
+### Исправлено
 
-- Conversion and watcher work continue in the background without a console window.
-- Conversion safety is retained through temporary output files and replacement only after success.
+- Приложение работает без консольного окна.
+- Конвертация сохраняет исходный файл до успешного завершения операции.
+- Исправлены нечитаемые цвета выделения в тёмной теме.
+- Убрана белая полоса в контекстном меню трея.
+- Исправлено исчезновение выбранного языка в окне настроек.
+- Повышена устойчивость запуска при отсутствии доступа к папке настроек или журналу.
 
-## [1.0.1] - 2026-08-30
+## [1.0.1] — 2026-08-30
 
-### Changed
+### Изменено
 
-- Improved queue processing and error handling during conversion.
-- Updated the portable publication script.
+- Улучшены обработка очереди конвертации и обработка ошибок.
+- Обновлён скрипт публикации portable-версии.
 
-## [1.0.0] - 2026-08-30
+## [1.0.0] — 2026-08-30
 
-### Added
+### Добавлено
 
-- Initial release of the background extension-rename converter.
-- Recursive monitoring of local, removable, and network drives.
-- Optional command-line monitoring of selected folders.
-- Media, image, audio, and document conversion support.
-- FFmpeg remuxing with automatic transcoding fallback.
-- Safe temporary-file conversion and activity log in `%LOCALAPPDATA%\RenameConv\RenameConv.log`.
+- Первый релиз фонового конвертера после смены расширения файла.
+- Рекурсивное наблюдение за локальными, съёмными и сетевыми дисками.
+- Наблюдение за выбранными папками через аргументы командной строки.
+- Конвертация видео, аудио, изображений и документов.
+- Быстрая перепаковка FFmpeg с автоматическим переходом к перекодированию.
+- Временные файлы для безопасной конвертации.
+- Журнал работы в `%LOCALAPPDATA%\RenameConv\RenameConv.log`.

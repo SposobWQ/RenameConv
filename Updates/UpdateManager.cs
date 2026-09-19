@@ -23,7 +23,8 @@ internal sealed class UpdateManager
         currentVersion = new Version(currentVersion.Major, currentVersion.Minor, Math.Max(0, currentVersion.Build));
         if (latestVersion <= currentVersion) return null;
 
-        var package = release.Assets.FirstOrDefault(asset => asset.Name.Contains("RenameConvPortable", StringComparison.OrdinalIgnoreCase) && asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        var edition = Directory.Exists(Path.Combine(AppContext.BaseDirectory, "tools")) ? "RenameConvPortable" : "RenameConvOnline";
+        var package = release.Assets.FirstOrDefault(asset => asset.Name.Contains(edition, StringComparison.OrdinalIgnoreCase) && asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
             ?? release.Assets.FirstOrDefault(asset => asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
         return new UpdateRelease(latestVersion, release.HtmlUrl, package?.DownloadUrl, package?.Name);
     }
@@ -70,7 +71,11 @@ internal sealed class UpdateManager
         var updaterPath = Path.Combine(AppContext.BaseDirectory, "RenameConvUpdater.exe");
         if (!File.Exists(updaterPath)) throw new FileNotFoundException("Не найден RenameConvUpdater.exe.", updaterPath);
 
-        var startInfo = new ProcessStartInfo(updaterPath) { UseShellExecute = true };
+        var updaterDirectory = Path.Combine(Path.GetTempPath(), "RenameConv", "updater");
+        Directory.CreateDirectory(updaterDirectory);
+        var temporaryUpdaterPath = Path.Combine(updaterDirectory, $"RenameConvUpdater-{Guid.NewGuid():N}.exe");
+        File.Copy(updaterPath, temporaryUpdaterPath, true);
+        var startInfo = new ProcessStartInfo(temporaryUpdaterPath) { UseShellExecute = true };
         startInfo.ArgumentList.Add(packagePath);
         startInfo.ArgumentList.Add(AppContext.BaseDirectory);
         startInfo.ArgumentList.Add(Environment.ProcessId.ToString());

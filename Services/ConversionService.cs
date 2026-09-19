@@ -112,11 +112,11 @@ internal sealed class ConversionService
         {
             try
             {
-                _office = await _dependencies.EnsureLibreOfficeAsync(cancellationToken);
+                _office = await _dependencies.EnsureLibreOfficeAsync(null, cancellationToken);
             }
             catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidOperationException)
             {
-                _report($"Не удалось загрузить LibreOffice: {ex.Message}");
+                _report($"Не удалось подготовить LibreOffice: {ex.Message}");
                 return;
             }
             if (_office is null)

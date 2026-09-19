@@ -9,8 +9,16 @@ internal sealed class ActivityLog
 
     public ActivityLog()
     {
-        DirectoryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RenameConv");
-        Directory.CreateDirectory(DirectoryPath);
+        var preferredPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "RenameConv");
+        try
+        {
+            Directory.CreateDirectory(preferredPath);
+            DirectoryPath = preferredPath;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            DirectoryPath = AppContext.BaseDirectory;
+        }
         _path = Path.Combine(DirectoryPath, "RenameConv.log");
     }
 
