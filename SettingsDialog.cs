@@ -15,6 +15,10 @@ internal sealed class SettingsDialog : Form
     private readonly Button _removeFolder = new();
     private readonly CheckBox _checkForUpdates = new() { AutoSize = true };
     private readonly CheckBox _autoUpdateDependencies = new() { AutoSize = true };
+    private readonly CheckBox _startWithWindows = new() { AutoSize = true };
+    private readonly Label _libreOfficeLabel = new() { AutoSize = true };
+    private readonly TextBox _libreOfficePath = new();
+    private readonly Button _chooseLibreOffice = new();
     private readonly Label _languageLabel = new() { AutoSize = true };
     private readonly ComboBox _language = new() { DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly Label _themeLabel = new() { AutoSize = true };
@@ -24,6 +28,7 @@ internal sealed class SettingsDialog : Form
     private readonly Label _version = new() { AutoSize = true };
     private readonly Button _save = new();
     private readonly Button _cancel = new() { DialogResult = DialogResult.Cancel };
+    private bool _refreshingChoices;
 
     public AppSettings Settings { get; private set; }
 
@@ -36,7 +41,7 @@ internal sealed class SettingsDialog : Form
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = false;
-        ClientSize = new Size(560, 530);
+        ClientSize = new Size(560, 610);
 
         _watchAllDrives.Location = new Point(18, 18);
         _watchAllDrives.Checked = Settings.WatchAllDrives;
@@ -58,27 +63,36 @@ internal sealed class SettingsDialog : Form
         _checkForUpdates.Checked = Settings.CheckForUpdatesOnStartup;
         _autoUpdateDependencies.Location = new Point(18, 296);
         _autoUpdateDependencies.Checked = Settings.AutoUpdateDependencies;
+        _startWithWindows.Location = new Point(18, 326);
+        _startWithWindows.Checked = Settings.StartWithWindows;
+        _libreOfficeLabel.Location = new Point(18, 366);
+        _libreOfficePath.Location = new Point(18, 390);
+        _libreOfficePath.Size = new Size(405, 27);
+        _libreOfficePath.Text = Settings.LibreOfficePath;
+        _chooseLibreOffice.Location = new Point(435, 388);
+        _chooseLibreOffice.Size = new Size(108, 30);
+        _chooseLibreOffice.Click += ChooseLibreOffice;
 
-        _languageLabel.Location = new Point(18, 336);
-        _language.Location = new Point(175, 332);
+        _languageLabel.Location = new Point(18, 436);
+        _language.Location = new Point(175, 432);
         _language.Size = new Size(130, 30);
         _language.SelectedIndexChanged += (_, _) => ChangeLanguage();
-        _themeLabel.Location = new Point(18, 376);
-        _theme.Location = new Point(175, 372);
+        _themeLabel.Location = new Point(18, 476);
+        _theme.Location = new Point(175, 472);
         _theme.Size = new Size(180, 30);
         _theme.SelectedIndexChanged += (_, _) => ThemeManager.Apply(this, GetThemeValue());
-        _iconColorLabel.Location = new Point(18, 416);
-        _iconColor.Location = new Point(175, 412);
+        _iconColorLabel.Location = new Point(18, 516);
+        _iconColor.Location = new Point(175, 512);
         _iconColor.Size = new Size(180, 30);
 
-        _version.Location = new Point(18, 466);
-        _save.Location = new Point(370, 474);
+        _version.Location = new Point(18, 556);
+        _save.Location = new Point(370, 570);
         _save.Size = new Size(84, 34);
         _save.Click += Save;
-        _cancel.Location = new Point(462, 474);
+        _cancel.Location = new Point(462, 570);
         _cancel.Size = new Size(82, 34);
 
-        Controls.AddRange([_watchAllDrives, _foldersLabel, _folders, _addFolder, _removeFolder, _checkForUpdates, _autoUpdateDependencies, _languageLabel, _language, _themeLabel, _theme, _iconColorLabel, _iconColor, _version, _save, _cancel]);
+        Controls.AddRange([_watchAllDrives, _foldersLabel, _folders, _addFolder, _removeFolder, _checkForUpdates, _autoUpdateDependencies, _startWithWindows, _libreOfficeLabel, _libreOfficePath, _chooseLibreOffice, _languageLabel, _language, _themeLabel, _theme, _iconColorLabel, _iconColor, _version, _save, _cancel]);
         AcceptButton = _save;
         CancelButton = _cancel;
         RefreshLocalizedChoices();
@@ -103,16 +117,39 @@ internal sealed class SettingsDialog : Form
         foreach (var item in _folders.SelectedItems.Cast<object>().ToArray()) _folders.Items.Remove(item);
     }
 
+    private void ChooseLibreOffice(object? sender, EventArgs eventArgs)
+    {
+        using var dialog = new OpenFileDialog
+        {
+            Title = _localizer["ChooseLibreOffice"],
+            Filter = "soffice.exe|soffice.exe",
+            FileName = "soffice.exe",
+            CheckFileExists = true
+        };
+        if (dialog.ShowDialog(this) == DialogResult.OK) _libreOfficePath.Text = dialog.FileName;
+    }
+
     private void ChangeLanguage()
     {
-        if (_language.SelectedIndex < 0) return;
+        if (_refreshingChoices || _language.SelectedIndex < 0) return;
+        var languageIndex = _language.SelectedIndex;
         var themeIndex = _theme.SelectedIndex;
         var colorIndex = _iconColor.SelectedIndex;
-        _localizer.SetLanguage(_language.SelectedIndex == 1 ? "en" : "ru");
-        RefreshLocalizedChoices();
-        _theme.SelectedIndex = themeIndex < 0 ? 0 : themeIndex;
-        _iconColor.SelectedIndex = colorIndex < 0 ? 0 : colorIndex;
+        _localizer.SetLanguage(languageIndex == 1 ? "en" : "ru");
+        _refreshingChoices = true;
+        try
+        {
+            RefreshLocalizedChoices();
+            _language.SelectedIndex = languageIndex;
+            _theme.SelectedIndex = themeIndex < 0 ? 0 : themeIndex;
+            _iconColor.SelectedIndex = colorIndex < 0 ? 0 : colorIndex;
+        }
+        finally
+        {
+            _refreshingChoices = false;
+        }
         ApplyLocalization();
+        ThemeManager.Apply(this, GetThemeValue());
     }
 
     private void Save(object? sender, EventArgs eventArgs)
@@ -123,6 +160,11 @@ internal sealed class SettingsDialog : Form
             MessageBox.Show(this, _localizer["FolderRequired"], "RenameConv", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
+        if (!string.IsNullOrWhiteSpace(_libreOfficePath.Text) && !File.Exists(_libreOfficePath.Text))
+        {
+            MessageBox.Show(this, _localizer["LibreOfficePathInvalid"], "RenameConv", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
 
         Settings = new AppSettings
         {
@@ -130,6 +172,8 @@ internal sealed class SettingsDialog : Form
             WatchedFolders = folders,
             CheckForUpdatesOnStartup = _checkForUpdates.Checked,
             AutoUpdateDependencies = _autoUpdateDependencies.Checked,
+            StartWithWindows = _startWithWindows.Checked,
+            LibreOfficePath = _libreOfficePath.Text,
             Language = _language.SelectedIndex == 1 ? "en" : "ru",
             Theme = GetThemeValue(),
             TrayIconColor = GetIconColorValue()
@@ -165,6 +209,9 @@ internal sealed class SettingsDialog : Form
         _removeFolder.Text = _localizer["Remove"];
         _checkForUpdates.Text = _localizer["CheckUpdatesAtStartup"];
         _autoUpdateDependencies.Text = _localizer["CheckDependenciesAtStartup"];
+        _startWithWindows.Text = _localizer["StartWithWindows"];
+        _libreOfficeLabel.Text = _localizer["LibreOfficePath"];
+        _chooseLibreOffice.Text = _localizer["ChooseLibreOffice"];
         _languageLabel.Text = _localizer["Language"];
         _themeLabel.Text = _localizer["Theme"];
         _iconColorLabel.Text = _localizer["TrayIconColor"];

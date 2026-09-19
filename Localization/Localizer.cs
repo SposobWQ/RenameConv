@@ -8,7 +8,7 @@ internal sealed class Localizer
         {
             ["Settings"] = "Настройки...",
             ["CheckUpdates"] = "Проверить обновления",
-            ["CheckDependencies"] = "Проверить зависимости",
+            ["CheckDependencies"] = "Проверить библиотеки",
             ["Status"] = "Статус",
             ["OpenLog"] = "Открыть журнал",
             ["Exit"] = "Выход",
@@ -18,7 +18,11 @@ internal sealed class Localizer
             ["AddFolder"] = "Добавить папку...",
             ["Remove"] = "Удалить",
             ["CheckUpdatesAtStartup"] = "Проверять обновления RenameConv при запуске",
-            ["CheckDependenciesAtStartup"] = "Автоматически обновлять зависимости при запуске",
+            ["CheckDependenciesAtStartup"] = "Проверять обновления библиотек раз в неделю",
+            ["StartWithWindows"] = "Запускать RenameConv вместе с Windows",
+            ["LibreOfficePath"] = "Путь к LibreOffice (soffice.exe):",
+            ["ChooseLibreOffice"] = "Выбрать...",
+            ["LibreOfficePathInvalid"] = "Указанный файл soffice.exe не найден.",
             ["Language"] = "Язык интерфейса:",
             ["Theme"] = "Тема оформления:",
             ["ThemeSystem"] = "Как в Windows",
@@ -45,16 +49,19 @@ internal sealed class Localizer
             ["Later"] = "Позже",
             ["DownloadUpdate"] = "Скачивание обновления...",
             ["StartUpdate"] = "Запуск обновления...",
-            ["DependencyTitle"] = "Зависимости RenameConv",
+            ["DependencyTitle"] = "Библиотеки RenameConv",
             ["UpdateDependencies"] = "Проверить и обновить",
             ["Ready"] = "Готово",
             ["TrayTooltip"] = "RenameConv — фоновый конвертер"
+            , ["StartupTitle"] = "RenameConv запущен"
+            , ["StartupMessage"] = "RenameConv работает в фоновом режиме. Управление и настройки находятся в значке рядом с часами."
+            , ["StartupConfirm"] = "Понятно"
         },
         ["en"] = new Dictionary<string, string>
         {
             ["Settings"] = "Settings...",
             ["CheckUpdates"] = "Check for updates",
-            ["CheckDependencies"] = "Check dependencies",
+            ["CheckDependencies"] = "Check libraries",
             ["Status"] = "Status",
             ["OpenLog"] = "Open log folder",
             ["Exit"] = "Exit",
@@ -64,7 +71,11 @@ internal sealed class Localizer
             ["AddFolder"] = "Add folder...",
             ["Remove"] = "Remove",
             ["CheckUpdatesAtStartup"] = "Check RenameConv updates at startup",
-            ["CheckDependenciesAtStartup"] = "Automatically update dependencies at startup",
+            ["CheckDependenciesAtStartup"] = "Check library updates once a week",
+            ["StartWithWindows"] = "Start RenameConv with Windows",
+            ["LibreOfficePath"] = "LibreOffice path (soffice.exe):",
+            ["ChooseLibreOffice"] = "Choose...",
+            ["LibreOfficePathInvalid"] = "The selected soffice.exe file was not found.",
             ["Language"] = "Interface language:",
             ["Theme"] = "Theme:",
             ["ThemeSystem"] = "Match Windows",
@@ -91,10 +102,13 @@ internal sealed class Localizer
             ["Later"] = "Later",
             ["DownloadUpdate"] = "Downloading update...",
             ["StartUpdate"] = "Starting update...",
-            ["DependencyTitle"] = "RenameConv Dependencies",
+            ["DependencyTitle"] = "RenameConv libraries",
             ["UpdateDependencies"] = "Check and update",
             ["Ready"] = "Ready",
-            ["TrayTooltip"] = "RenameConv — background converter"
+            ["TrayTooltip"] = "RenameConv — background converter",
+            ["StartupTitle"] = "RenameConv is running",
+            ["StartupMessage"] = "RenameConv is running in the background. Its controls and settings are available from the icon near the clock.",
+            ["StartupConfirm"] = "Got it"
         }
     };
 
